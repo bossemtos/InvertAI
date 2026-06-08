@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InvertAI — English Sentence Inverter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────────────────────────────────
+       CSS VARIABLES
+    ───────────────────────────────────────── */
+    :root {
+      --bg:          #05080F;
+      --bg2:         #080C16;
+      --glass:       rgba(255,255,255,0.032);
+      --glass-hover: rgba(255,255,255,0.056);
+      --glass-deep:  rgba(255,255,255,0.016);
+      --border:      rgba(255,255,255,0.072);
+      --border-lit:  rgba(0,229,160,0.38);
+      --border-blue: rgba(0,153,255,0.28);
+
+      --accent:      #00E5A0;
+      --accent2:     #0099FF;
+      --accent-dim:  rgba(0,229,160,0.12);
+      --accent2-dim: rgba(0,153,255,0.12);
+
+      --text:        #EDF2FF;
+      --text-muted:  #8892A4;
+      --text-dim:    #4A5568;
+      --text-faint:  #2A3145;
+
+      --red:         #FF5670;
+      --red-dim:     rgba(255,86,112,0.12);
+      --gold:        #FFB547;
+      --gold-dim:    rgba(255,181,71,0.12);
+
+      --radius:    16px;
+      --radius-sm: 10px;
+      --radius-xs:  7px;
+
+      --shadow-sm: 0 4px 16px rgba(0,0,0,0.35);
+      --shadow:    0 8px 32px rgba(0,0,0,0.45);
+      --shadow-lg: 0 24px 64px rgba(0,0,0,0.65);
+      --glow:      0 0 24px rgba(0,229,160,0.18);
+
+      --ease:      cubic-bezier(0.4,0,0.2,1);
+      --spring:    cubic-bezier(0.34,1.56,0.64,1);
+      --t:         0.25s;
+    }
+
+    /* ─────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    button { font-family: inherit; }
+    textarea, input { font-family: inherit; }
+
+    /* ─────────────────────────────────────────
+       AMBIENT BACKGROUND
+    ───────────────────────────────────────── */
+    .bg-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.11;
+      animation: drift 22s ease-in-out infinite;
+    }
+    .orb-1 {
+      width: 650px; height: 650px;
+      background: radial-gradient(circle, #00E5A0 0%, transparent 65%);
+      top: -220px; left: -120px;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, #0099FF 0%, transparent 65%);
+      bottom: -160px; right: -110px;
+      animation-delay: -8s;
+      opacity: 0.10;
+    }
+    .orb-3 {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, #7B5FFF 0%, transparent 65%);
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: -16s;
+      opacity: 0.065;
+    }
+    @keyframes drift {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(28px,-22px) scale(1.04); }
+      66%      { transform: translate(-18px,28px) scale(0.96); }
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0; z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+    }
+
+    /* ─────────────────────────────────────────
+       APP WRAPPER
+    ───────────────────────────────────────── */
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─────────────────────────────────────────
+       HEADER
+    ───────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 68px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5,8,15,0.72);
+      backdrop-filter: blur(24px) saturate(1.5);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent) 0%, #00B87C 100%);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 18px rgba(0,229,160,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .logo-icon svg { width: 18px; height: 18px; color: #002916; }
+    .logo-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: -0.6px;
+      background: linear-gradient(135deg, var(--text) 30%, var(--text-muted) 120%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      border: 1px solid rgba(0,229,160,0.28);
+      background: rgba(0,229,160,0.06);
+      padding: 3px 9px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .header-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      background: var(--glass);
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    .header-hint kbd {
+      display: inline-flex;
+      align-items: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,229,160,0.22);
+      padding: 1px 7px;
+      border-radius: 5px;
+      gap: 2px;
+    }
+
+    /* ─────────────────────────────────────────
+       MAIN GRID
+    ───────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 28px;
+      max-width: 1160px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 40px 40px 80px;
+    }
+
+    /* ─────────────────────────────────────────
+       SECTION LABEL
+    ───────────────────────────────────────── */
+    .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10.5px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .label::before {
+      content: '';
+      display: block;
+      width: 14px; height: 1px;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    /* ─────────────────────────────────────────
+       LEFT COLUMN
+    ───────────────────────────────────────── */
+    .left-col { display: flex; flex-direction: column; gap: 18px; }
+
+    /* ─────────────────────────────────────────
+       TEXTAREA CARD
+    ───────────────────────────────────────── */
+    .textarea-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+      transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+    }
+    .textarea-card:focus-within {
+      border-color: var(--border-lit);
+      box-shadow: 0 0 0 1px rgba(0,229,160,0.12), var(--glow);
+    }
+
+    .tc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--glass-deep);
+    }
+    .tc-dots { display: flex; gap: 6px; }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .dot-r { background: #FF5F57; }
+    .dot-y { background: #FEBC2E; }
+    .dot-g { background: #28C840; }
+
+    .tc-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .char-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-dim);
+      transition: color var(--t) var(--ease);
+    }
+
+    textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 15.5px;
+      font-weight: 300;
+      line-height: 1.75;
+      padding: 22px 22px 18px;
+      resize: none;
+      min-height: 148px;
+      caret-color: var(--accent);
+    }
+    textarea::placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+      font-weight: 300;
+    }
+    textarea::-webkit-scrollbar { width: 4px; }
+    textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* ─────────────────────────────────────────
+       BUTTON ROW
+    ───────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all var(--t) var(--ease);
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00E5A0 0%, #00B87C 100%);
+      color: #002916;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,229,160,0.28);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 36px rgba(0,229,160,0.42);
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-ghost {
+      background: var(--glass);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: var(--glass-hover);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.12);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost-red {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(255,86,112,0.22);
+    }
+    .btn-ghost-red:hover {
+      background: rgba(255,86,112,0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 11.5px;
+      border-radius: var(--radius-xs);
+    }
+
+    .icon-btn {
+      width: 32px; height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-xs);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--t) var(--ease);
+      flex-shrink: 0;
+    }
+    .icon-btn:hover {
+      background: var(--glass-hover);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* ─────────────────────────────────────────
+       SPINNER
+    ───────────────────────────────────────── */
+    .spinner {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(0,41,22,0.25);
+      border-top-color: #002916;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─────────────────────────────────────────
+       RESULT CARD
+    ───────────────────────────────────────── */
+    .result-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
+      pointer-events: none;
+    }
+    .result-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .rc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(0,229,160,0.05), transparent 60%);
+    }
+    .rc-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10.5px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .pulse-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%,100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
+      50%      { opacity: 0.55; box-shadow: 0 0 4px var(--accent); }
+    }
+
+    .rc-body { padding: 24px 22px; }
+
+    .rc-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 9px;
+    }
+
+    .rc-sentence {
+      font-size: 21px;
+      font-weight: 500;
+      line-height: 1.52;
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin-bottom: 22px;
+    }
+
+    .rc-sep {
+      height: 1px;
+      background: linear-gradient(to right, var(--border), transparent 80%);
+      margin-bottom: 18px;
+    }
+
+    .rc-explanation-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rc-explanation-tag::before {
+      content: 'PL';
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,229,160,0.2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+    }
+
+    .rc-explanation {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    /* ─────────────────────────────────────────
+       HISTORY PANEL
+    ───────────────────────────────────────── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: sticky;
+      top: 88px;
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+    }
+
+    .history-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .history-heading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--text);
+    }
+    .history-heading svg { color: var(--text-muted); }
+    .history-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      color: var(--text-dim);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .history-scroller {
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      max-height: calc(100vh - 240px);
+      padding-right: 2px;
+    }
+    .history-scroller::-webkit-scrollbar { width: 3px; }
+    .history-scroller::-webkit-scrollbar-track { background: transparent; }
+    .history-scroller::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+    .history-empty {
+      text-align: center;
+      padding: 36px 16px;
+      background: var(--glass-deep);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+    }
+    .history-empty-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+      opacity: 0.35;
+      filter: grayscale(0.5);
+    }
+    .history-empty p {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .h-item {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+      cursor: pointer;
+      transition: all var(--t) var(--ease);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      animation: slideIn 0.3s var(--ease);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .h-item:hover {
+      background: var(--glass-hover);
+      border-color: rgba(255,255,255,0.11);
+      transform: translateX(2px);
+    }
+
+    .h-content { flex: 1; min-width: 0; }
+    .h-orig {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .h-inv {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 5px;
+    }
+    .h-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+    }
+
+    .h-del {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: all var(--t) var(--ease);
+      margin-top: 1px;
+    }
+    .h-del:hover {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    /* ─────────────────────────────────────────
+       TOAST
+    ───────────────────────────────────────── */
+    #toasts {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      pointer-events: none;
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      backdrop-filter: blur(24px);
+      font-size: 13px;
+      font-weight: 500;
+      pointer-events: all;
+      min-width: 240px;
+      max-width: 340px;
+      border: 1px solid;
+      box-shadow: var(--shadow);
+      animation: toastIn 0.35s var(--spring) both;
+      transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+    }
+    .toast.out {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+    .toast-icon {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .toast-success {
+      background: rgba(0,229,160,0.08);
+      border-color: rgba(0,229,160,0.25);
+      color: #7FFFD4;
+    }
+    .toast-success .toast-icon { background: rgba(0,229,160,0.15); color: var(--accent); }
+    .toast-error {
+      background: rgba(255,86,112,0.08);
+      border-color: rgba(255,86,112,0.25);
+      color: #FFAAB8;
+    }
+    .toast-error .toast-icon { background: rgba(255,86,112,0.15); color: var(--red); }
+    .toast-info {
+      background: rgba(0,153,255,0.08);
+      border-color: rgba(0,153,255,0.25);
+      color: #90CAFF;
+    }
+    .toast-info .toast-icon { background: rgba(0,153,255,0.15); color: var(--accent2); }
+    .toast-warn {
+      background: rgba(255,181,71,0.08);
+      border-color: rgba(255,181,71,0.25);
+      color: #FFDDA0;
+    }
+    .toast-warn .toast-icon { background: var(--gold-dim); color: var(--gold); }
+    @keyframes toastIn {
+      from { opacity:0; transform: translateX(16px) scale(0.94); }
+      to   { opacity:1; transform: translateX(0) scale(1); }
+    }
+
+    /* ─────────────────────────────────────────
+       COPY FLASH
+    ───────────────────────────────────────── */
+    @keyframes copyFlash {
+      0%   { background: rgba(0,229,160,0.12); }
+      100% { background: transparent; }
+    }
+    .flash { animation: copyFlash 0.4s var(--ease); }
+
+    /* ─────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────── */
+    @media (max-width: 900px) {
+      header { padding: 0 20px; }
+      .header-hint { display: none; }
+      main {
+        grid-template-columns: 1fr;
+        padding: 24px 20px 60px;
+        gap: 24px;
+      }
+      .right-col {
+        position: static;
+        max-height: none;
+      }
+      .history-scroller { max-height: 380px; }
+    }
+    @media (max-width: 520px) {
+      .rc-sentence { font-size: 17px; }
+      #toasts { right: 14px; bottom: 14px; left: 14px; }
+      .toast { min-width: unset; width: 100%; }
+      .logo-pill { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient BG -->
+<div class="bg-scene">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<div class="bg-grid"></div>
+
+<div class="app">
+
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <!-- Swap arrow icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+        </svg>
+      </div>
+      <span class="logo-name">InvertAI</span>
+      <span class="logo-pill">Developed by A.N</span>
+    </div>
+    <div class="header-hint">
+      <kbd>Redefining what AI INVERSION can do</kbd>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- LEFT COLUMN -->
+    <div class="left-col">
+
+      <span class="label">Input Sentence</span>
+
+      <!-- Textarea Card -->
+      <div class="textarea-card" id="tcCard">
+        <div class="tc-header">
+          <div class="tc-dots">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+          </div>
+          <div class="tc-meta">
+            <span class="char-count" id="charCount">0 chars</span>
+          </div>
+        </div>
+        <textarea
+          id="sentInput"
+          rows="5"
+          maxlength="2000"
+          placeholder="Type or paste an English sentence… e.g. &quot;Never have I seen such beauty.&quot;"
+        ></textarea>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn btn-primary" id="analyzeBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          Analyze Inversion
+        </button>
+        <button class="btn btn-ghost" id="clearBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+          Clear
+        </button>
+      </div>
+
+      <!-- Result Card -->
+      <div class="result-card" id="resultCard">
+        <div class="rc-header">
+          <div class="rc-status">
+            <div class="pulse-dot"></div>
+            Inversion result
+          </div>
+          <div style="display:flex;gap:7px;">
+            <button class="icon-btn" id="copyBtn" title="Copy result to clipboard">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="rc-body" id="rcBody">
+          <div class="rc-tag">Inverted sentence</div>
+          <div class="rc-sentence" id="rcSentence"></div>
+          <div class="rc-sep"></div>
+          <div class="rc-explanation-tag">Explanation</div>
+          <div class="rc-explanation" id="rcExplanation"></div>
+        </div>
+      </div>
+
+    </div><!-- /left-col -->
+
+    <!-- RIGHT COLUMN: HISTORY -->
+    <div class="right-col">
+      <div class="history-top">
+        <div class="history-heading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          History
+          <span class="history-badge" id="histBadge">0 / 50</span>
+        </div>
+        <button class="btn btn-ghost-red btn-sm" id="clearHistBtn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+          Clear all
+        </button>
+      </div>
+
+      <div class="history-scroller" id="histList"></div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<!-- Toast Container -->
+<div id="toasts"></div>
+
+<!-- ─────────────────────────────────────────
+     JAVASCRIPT
+───────────────────────────────────────── -->
+<script>
+"use strict";
+
+/* ── CONFIG ── */
+const GEMINI_API_KEY = "AQ.Ab8RN6IiqeWkz-ZPRP9iqwMmlyXyNGSOJ254SGktKXYNrhJi6w";
+const GEMINI_MODEL   = "gemini-2.5-flash";
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const HIST_KEY       = "invertai_hist_v1";
+const MAX_HIST       = 50;
+
+/* ── DOM ── */
+const sentInput   = document.getElementById("sentInput");
+const analyzeBtn  = document.getElementById("analyzeBtn");
+const clearBtn    = document.getElementById("clearBtn");
+const resultCard  = document.getElementById("resultCard");
+const rcSentence  = document.getElementById("rcSentence");
+const rcExpl      = document.getElementById("rcExplanation");
+const rcBody      = document.getElementById("rcBody");
+const copyBtn     = document.getElementById("copyBtn");
+const histList    = document.getElementById("histList");
+const histBadge   = document.getElementById("histBadge");
+const clearHistBtn= document.getElementById("clearHistBtn");
+const charCount   = document.getElementById("charCount");
+const toastBox    = document.getElementById("toasts");
+
+/* ── STATE ── */
+let isLoading   = false;
+let curResult   = null;   // { inversion, changes }
+
+/* ────────────────────────────
+   HISTORY HELPERS
+──────────────────────────── */
+function histLoad() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); }
+  catch { return []; }
+}
+function histSave(h) {
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); }
+  catch { toast("Could not save history (storage full?)", "warn"); }
+}
+
+function histAdd(original, inversion, changes) {
+  const h = histLoad();
+  h.unshift({ id: Date.now(), original, inversion, changes, ts: new Date().toISOString() });
+  if (h.length > MAX_HIST) h.length = MAX_HIST;
+  histSave(h);
+  histRender();
+}
+
+function histDelete(id) {
+  histSave(histLoad().filter(e => e.id !== id));
+  histRender();
+  toast("Entry deleted", "info");
+}
+
+function histClear() {
+  histSave([]);
+  histRender();
+  toast("History cleared", "info");
+}
+
+/* ────────────────────────────
+   HISTORY RENDER
+──────────────────────────── */
+function relTime(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000)    return "just now";
+  if (ms < 3_600_000) return `${Math.floor(ms/60_000)}m ago`;
+  if (ms < 86_400_000)return `${Math.floor(ms/3_600_000)}h ago`;
+  return new Date(iso).toLocaleDateString("pl-PL", { day:"2-digit", month:"short" });
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+function trunc(s, n) {
+  s = String(s);
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
+function histRender() {
+  const h = histLoad();
+  histBadge.textContent = `${h.length} / ${MAX_HIST}`;
+
+  if (!h.length) {
+    histList.innerHTML = `
+      <div class="history-empty">
+        <div class="history-empty-icon">↕️</div>
+        <p>No history yet.<br>Analyze a sentence to begin.</p>
+      </div>`;
+    return;
+  }
+
+  histList.innerHTML = h.map(e => `
+    <div class="h-item" data-id="${e.id}">
+      <div class="h-content">
+        <div class="h-orig"  title="${esc(e.original)}">${esc(trunc(e.original,46))}</div>
+        <div class="h-inv"   title="${esc(e.inversion)}">${esc(trunc(e.inversion,46))}</div>
+        <div class="h-time">${relTime(e.ts)}</div>
+      </div>
+      <button class="h-del" data-del="${e.id}" title="Delete">×</button>
+    </div>
+  `).join("");
+
+  /* click handlers */
+  histList.querySelectorAll(".h-item").forEach(el => {
+    el.addEventListener("click", ev => {
+      if (ev.target.closest(".h-del")) return;
+      const id  = Number(el.dataset.id);
+      const entry = histLoad().find(x => x.id === id);
+      if (entry) histRestore(entry);
+    });
+  });
+  histList.querySelectorAll(".h-del").forEach(btn => {
+    btn.addEventListener("click", ev => {
+      ev.stopPropagation();
+      histDelete(Number(btn.dataset.del));
+    });
+  });
+}
+
+function histRestore(entry) {
+  sentInput.value = entry.original;
+  updateCharCount();
+  curResult = { inversion: entry.inversion, changes: entry.changes };
+  showResult(entry.inversion, entry.changes);
+  sentInput.focus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ────────────────────────────
+   UI HELPERS
+──────────────────────────── */
+function updateCharCount() {
+  const n = sentInput.value.length;
+  charCount.textContent = `${n} char${n !== 1 ? "s" : ""}`;
+  charCount.style.color =
+    n > 1800 ? "var(--red)"  :
+    n > 1400 ? "var(--gold)" : "var(--text-dim)";
+}
+
+function setLoading(v) {
+  isLoading = v;
+  analyzeBtn.disabled = v;
+  if (v) {
+    analyzeBtn.innerHTML = `<div class="spinner"></div> Analyzing…`;
+  } else {
+    analyzeBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+      Analyze Inversion`;
+  }
+}
+
+function showResult(inversion, changes) {
+  rcSentence.textContent    = inversion;
+  rcExpl.textContent        = changes;
+  resultCard.classList.add("visible");
+}
+
+function hideResult() {
+  resultCard.classList.remove("visible");
+  curResult = null;
+}
+
+/* ────────────────────────────
+   TOAST
+──────────────────────────── */
+const ICONS = { success:"✓", error:"✕", info:"i", warn:"!" };
+function toast(msg, type = "success", dur = 3800) {
+  const el = document.createElement("div");
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<div class="toast-icon">${ICONS[type] || "i"}</div><span>${esc(msg)}</span>`;
+  toastBox.appendChild(el);
+  setTimeout(() => {
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 320);
+  }, dur);
+}
+
+/* ────────────────────────────
+   JSON EXTRACTION
+──────────────────────────── */
+function extractJSON(raw) {
+  /* 1. direct parse */
+  try { return JSON.parse(raw); } catch {}
+
+  /* 2. code-fence block */
+  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) {
+    try { return JSON.parse(fence[1].trim()); } catch {}
+  }
+
+  /* 3. first { … } block */
+  const brace = raw.match(/\{[\s\S]*?\}/);
+  if (brace) {
+    try { return JSON.parse(brace[0]); } catch {}
+  }
+
+  /* 4. greedy { … } block */
+  const braceGreedy = raw.match(/\{[\s\S]*\}/);
+  if (braceGreedy) {
+    try { return JSON.parse(braceGreedy[0]); } catch {}
+  }
+
+  return null;
+}
+
+/* ────────────────────────────
+   GEMINI API CALL
+──────────────────────────── */
+async function callGemini(sentence) {
+  const prompt = `Convert the sentence using English inversion.
+Return ONLY valid JSON:
+{
+  "inversion": "",
+  "changes": ""
+}
+Rules:
+- changes must be in Polish
+- maximum 15 words
+- no markdown
+- no extra text
+
+Sentence: ${sentence}`;
+
+  let resp;
+  try {
+    resp = await fetch(GEMINI_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature:     0.15,
+          maxOutputTokens: 512,
+          topP: 0.8,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+  } catch (netErr) {
+    if (!navigator.onLine) throw new Error("No internet connection.");
+    throw new Error("Network error – could not reach Gemini API.");
+  }
+
+  /* HTTP errors */
+  if (!resp.ok) {
+    let msg = `HTTP ${resp.status}`;
+    try {
+      const errBody = await resp.json();
+      const gmsg = errBody?.error?.message;
+      if (gmsg) {
+        if (resp.status === 400) msg = `Bad request: ${gmsg}`;
+        else if (resp.status === 401 || resp.status === 403)
+          msg = "API key invalid or quota exceeded. Check GEMINI_API_KEY.";
+        else if (resp.status === 429)
+          msg = "Rate limit reached. Please wait a moment and try again.";
+        else if (resp.status >= 500)
+          msg = `Gemini server error (${resp.status}). Try again shortly.`;
+        else msg = gmsg;
+      }
+    } catch {}
+    throw new Error(msg);
+  }
+
+  /* Parse body */
+  let body;
+  try { body = await resp.json(); }
+  catch { throw new Error("Gemini returned non-JSON body."); }
+
+  /* Safety block */
+  const reason = body?.candidates?.[0]?.finishReason;
+  if (reason === "SAFETY") throw new Error("Response blocked by Gemini safety filters.");
+  if (reason === "RECITATION") throw new Error("Response blocked (recitation policy).");
+
+  /* Extract text */
+  const rawText = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!rawText) throw new Error("Gemini returned an empty response.");
+
+  /* Parse JSON */
+  const parsed = extractJSON(rawText);
+  if (!parsed)
+    throw new Error(`Could not parse JSON from Gemini. Raw: "${rawText.slice(0,100)}…"`);
+
+  if (typeof parsed.inversion !== "string" || typeof parsed.changes !== "string") {
+    /* try to coerce */
+    parsed.inversion = String(parsed.inversion ?? "");
+    parsed.changes   = String(parsed.changes   ?? "");
+    if (!parsed.inversion)
+      throw new Error("JSON missing 'inversion' field.");
+  }
+
+  return parsed;
+}
+
+/* ────────────────────────────
+   ANALYZE
+──────────────────────────── */
+async function analyze() {
+  const sentence = sentInput.value.trim();
+  if (!sentence) {
+    toast("Please enter a sentence first.", "error");
+    sentInput.focus();
+    return;
+  }
+  if (isLoading) return;
+
+  setLoading(true);
+  hideResult();
+
+  try {
+    const result = await callGemini(sentence);
+    curResult = result;
+    showResult(result.inversion, result.changes);
+    histAdd(sentence, result.inversion, result.changes);
+    toast("Inversion complete!", "success");
+  } catch (err) {
+    console.error("[InvertAI]", err);
+    toast(err.message || "Unexpected error.", "error", 6000);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ────────────────────────────
+   EVENT LISTENERS
+──────────────────────────── */
+analyzeBtn.addEventListener("click", analyze);
+
+sentInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); analyze(); }
+});
+
+sentInput.addEventListener("input", updateCharCount);
+
+clearBtn.addEventListener("click", () => {
+  sentInput.value = "";
+  updateCharCount();
+  hideResult();
+  sentInput.focus();
+});
+
+copyBtn.addEventListener("click", () => {
+  if (!curResult) return;
+  const text = `${curResult.inversion}\n\n${curResult.changes}`;
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      toast("Copied to clipboard!", "success");
+      rcBody.classList.add("flash");
+      setTimeout(() => rcBody.classList.remove("flash"), 450);
+    })
+    .catch(() => {
+      /* fallback */
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast("Copied!", "success");
+    });
+});
+
+clearHistBtn.addEventListener("click", () => {
+  if (!histLoad().length) { toast("History is already empty.", "info"); return; }
+  histClear();
+});
+
+/* ────────────────────────────
+   INIT
+──────────────────────────── */
+histRender();
+updateCharCount();
+sentInput.focus();
+</script>
+
+</body>
+</html>
